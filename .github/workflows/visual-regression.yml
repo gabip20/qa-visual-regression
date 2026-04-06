@@ -1,0 +1,83 @@
+name: Visual Regression
+
+# Runs only when triggered manually from GitHub UI
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Target website URL (required)'
+        required: true
+      mode:
+        description: 'baseline = save screenshots | compare = check for changes'
+        required: true
+        default: 'compare'
+        type: choice
+        options:
+          - baseline
+          - compare
+      pages:
+        description: 'Number of pages to sample'
+        default: '6'
+      seed:
+        description: 'Random seed (keep same for baseline and compare)'
+        default: '42'
+      mask_selectors:
+        description: 'CSS selectors to mask (comma-separated)'
+        default: ''
+
+jobs:
+  visual-regression:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.58.2-jammy
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      # Download baseline screenshots if they were saved previously
+      - name: Download baseline (compare mode only)
+        if: github.event.inputs.mode == 'compare'
+        uses: actions/download-artifact@v4
+        with:
+          name: baseline-screenshots
+          path: tests/visual-sampler.spec.js-snapshots/
+        continue-on-error: true
+
+      - name: Run visual regression
+        env:
+          BASE_URL: ${{ github.event.inputs.base_url }}
+          PAGES:   ${{ github.event.inputs.pages }}
+          SEED:    ${{ github.event.inputs.seed }}
+          MASK_SELECTORS: ${{ github.event.inputs.mask_selectors }}
+          CI:      "true"
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "baseline" ]; then
+            npx playwright test --update-snapshots
+          else
+            npx playwright test --reporter=html
+          fi
+
+      # Save baseline screenshots as artifact (baseline mode only)
+      - name: Upload baseline screenshots
+        if: github.event.inputs.mode == 'baseline'
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-screenshots
+          path: tests/visual-sampler.spec.js-snapshots/
+          retention-days: 30
+
+      # Always upload report — especially useful when tests fail
+      - name: Upload HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

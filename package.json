@@ -1,0 +1,12 @@
+{
+  "name": "qa-visual-regression",
+  "version": "1.0.0",
+  "description": "Generic visual regression sampler using Playwright",
+  "scripts": {
+    "test": "playwright test",
+    "test:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2"
+  }
+}
