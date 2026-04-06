@@ -44,9 +44,10 @@ jobs:
       # Download baseline screenshots if they were saved previously
       - name: Download baseline (compare mode only)
         if: github.event.inputs.mode == 'compare'
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v6
         with:
           name: baseline-screenshots
+          workflow: visual-regression.yml
           path: tests/visual-sampler.spec.js-snapshots/
         continue-on-error: true
 
