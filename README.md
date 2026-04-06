@@ -1,40 +1,47 @@
-# pw-visual-regression
+# qa-visual-regression
 
-Generic visual regression sampler using Playwright. Point it at any URL and it will
-crawl internal links, pick a deterministic sample of pages, and screenshot them.
+Generic visual regression tool built with Playwright. Point it at any URL and it
+will crawl internal links, pick a deterministic sample of pages, and screenshot them.
 Run it twice (baseline → compare) to catch visual regressions.
 
 ## How it works
 
-1. **Baseline job** — visits `BASE_URL`, picks pages by seed, saves screenshots as artifacts
-2. **Compare job** — visits the same pages, compares against baseline screenshots, generates an HTML diff report
+1. **Baseline** — visits `BASE_URL`, picks pages by seed, saves screenshots as reference
+2. **Compare** — visits the same pages, compares against baseline, generates an HTML diff report
 
-## Running in GitLab CI
+## Running with GitHub Actions
 
-Go to **CI/CD → Pipelines → Run pipeline** and set these variables:
+Go to **Actions → Visual Regression → Run workflow** and fill in:
 
-| Variable         | Required | Default | Description                                      |
-|------------------|----------|---------|--------------------------------------------------|
-| `BASE_URL`       | ✅        | —       | The site to test, e.g. `https://example.com`     |
-| `SEED`           | —        | `42`    | Controls which pages are picked                  |
-| `PAGES`          | —        | `6`     | Number of pages to screenshot (includes homepage)|
-| `MASK_SELECTORS` | —        | —       | CSS selectors to mask, e.g. `.ad-banner,.clock`  |
+| Input            | Required | Default | Description                                       |
+|------------------|----------|---------|---------------------------------------------------|
+| `base_url`       | ✅        | —       | The site to test, e.g. `https://example.com`      |
+| `mode`           | ✅        | compare | `baseline` = save screenshots, `compare` = check  |
+| `pages`          | —        | `6`     | Number of pages to screenshot (includes homepage) |
+| `seed`           | —        | `42`    | Controls which pages are picked                   |
+| `mask_selectors` | —        | —       | CSS selectors to mask, e.g. `.ad-banner,.clock`   |
 
 Then:
-1. ▶ Run **`visual-baseline`** and wait for it to finish
+1. ▶ Run workflow with `mode = baseline` and wait for it to finish
 2. Deploy your changes
-3. ▶ Run **`visual-compare`**
-4. Open the `playwright-report/` artifact to see diffs
+3. ▶ Run workflow with `mode = compare`
+4. Download the `playwright-report` artifact to see diffs
 
 ## Running locally
-
 ```bash
 npm install
 npx playwright install chromium
 
 # Generate baseline
-BASE_URL="https://example.com" npm run test:update
+BASE_URL="https://example.com" npx playwright test --update-snapshots
 
 # Compare
-BASE_URL="https://example.com" npm test
+BASE_URL="https://example.com" npx playwright test
 ```
+
+## Key features
+
+- **Deterministic sampling** — same seed always picks the same pages, results are reproducible
+- **Overlay dismissal** — automatically closes cookie banners and popups before screenshotting
+- **Dynamic masking** — mask elements like ads or live clocks via `MASK_SELECTORS` to avoid false positives
+- **CI-safe** — uses viewport-only screenshots on CI runners to avoid memory crashes
